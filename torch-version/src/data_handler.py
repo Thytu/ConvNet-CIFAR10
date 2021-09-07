@@ -10,7 +10,7 @@ import logging
 import logs_handler
 
 
-def load_dataset(path: str, batch_size=32, download=True) -> Tuple[DataLoader[Any], DataLoader[Any]]:
+def load_dataset(path: str, batch_size=32, download=True) -> Tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]:
     """
     Load the CIFAR10 dataset, save it to [path] and return it.
     """
@@ -28,15 +28,17 @@ def load_dataset(path: str, batch_size=32, download=True) -> Tuple[DataLoader[An
 
     logger.debug("Downloading dataset")
     train_set = torchvision.datasets.CIFAR10(root=path, train=True, download=download, transform=transform)
-    test_set = torchvision.datasets.CIFAR10(root=path, train=False, download=download, transform=transform)
+    val_set = torchvision.datasets.CIFAR10(root=path, train=False, download=download, transform=transform)
+    val_set, test_set = torch.utils.data.random_split(val_set, [int(len(val_set) * 0.5), int(len(val_set) * 0.5)])
 
     logger.debug("Creating DataLoaders")
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=2)
+    val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2)
     test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=2)
 
     logger.info("Dataset successfully loaded")
 
-    return train_loader, test_loader
+    return train_loader, val_loader, test_loader
 
 if __name__ == '__main__':
     DATA_DIR = "./data"
