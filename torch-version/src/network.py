@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.nn.utils.prune as prune
 
 import logging
 from typing import Tuple
 
-# TODO: add logger to train and test functions
 
 class ConvNet(nn.Module):
     def __init__(self, device: str, optimizer=torch.optim.Adam, criterion=nn.CrossEntropyLoss(), lr=0.0001):
@@ -23,28 +23,36 @@ class ConvNet(nn.Module):
         self.device = device
         self.criterion = nn.CrossEntropyLoss()
 
-        self.pool = nn.MaxPool2d(2, 2)
+        self.convs = nn.Sequential(
+            nn.Conv2d(3, 6, 5),
+            nn.MaxPool2d(2, 2),
 
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.conv2 = nn.Conv2d(6, 16, 5)
+            nn.Conv2d(6, 16, 5),
+            nn.MaxPool2d(2, 2)
+        )
 
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
+        self.linears = nn.Sequential(
+            nn.Linear(16 * 5 * 5, 150),
+            nn.ReLU(),
+
+            nn.Linear(150, 150),
+            nn.ReLU(),
+
+            nn.Linear(150, 50),
+            nn.ReLU(),
+
+            nn.Linear(50, 10)
+        )
 
         logger.debug("Loading optimizer")
         self.optimizer = optimizer(self.parameters(), lr=lr)
 
         logger.info("Model successfully created")
 
-    def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-
-        x = torch.flatten(x, 1)
-
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
+    def forward(self, t):
+        t = self.convs(t)
+        t = torch.flatten(t, start_dim=1)
+        t = self.linears(t)
 
         return self.fc3(x)
 
@@ -165,6 +173,8 @@ class ConvNet(nn.Module):
 
         logger.info("Model successfully tested in details")
 
+    def save_dict(self, path: str) -> None:
+        torch.save(self.state_dict(), path)
 
 def _forward_pre_hook(module: nn.Module, inputs: Tuple[torch.Tensor]) -> torch.float32:
     """
@@ -183,7 +193,7 @@ def _forward_pre_hook(module: nn.Module, inputs: Tuple[torch.Tensor]) -> torch.f
     return inputs[0].to(module.device)
 
 
-def load_network(device='cpu'):
+def load_network(device='cpu') -> nn.Module:
     """
     Load the network, its hooks and return it
     """
@@ -199,3 +209,31 @@ def load_network(device='cpu'):
     logger.info("Network successfully loaded")
 
     return net
+
+
+def prune_model(model: nn.Module) -> None:
+    """
+    Create a new pruned model from the provided model
+    """
+
+    logger = logging.getLogger("data_handler:create_pruned_model")
+
+    logger.debug("Loading network")
+    pruned_model = load_network()
+
+    logger.debug("Loading state dict")
+    pruned_model.load_state_dict(model.state_dict())
+
+    for name, module in pruned_model.named_modules():
+
+        if isinstance(module, torch.nn.Conv2d):
+            logger.debug("Pruning Conv2D")
+            prune.l1_unstructured(module, name='weight', amount=0.2)
+
+        elif isinstance(module, torch.nn.Linear):
+            logger.debug("Pruning Linear")
+            prune.l1_unstructured(module, name='weight', amount=0.4)
+
+    logger.info("Model successfully pruned")
+
+    return pruned_model

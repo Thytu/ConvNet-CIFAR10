@@ -6,6 +6,8 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
+from yaml_handler import load_yaml
+
 import logging
 import logs_handler
 
@@ -41,9 +43,12 @@ def load_dataset(path: str, batch_size=32, download=True) -> Tuple[DataLoader[An
     return train_loader, val_loader, test_loader
 
 if __name__ == '__main__':
-    DATA_DIR = "./data"
+    YAML = load_yaml("./config.yaml")
 
-    logging.basicConfig(filename='logs.log', level=logs_handler.get_log_level())
+    DATA_DIR = YAML['global']['data_dir']
+    LOG_PATH = YAML['global']['log_path']
+
+    logging.basicConfig(filename=LOG_PATH, level=logs_handler.get_log_level())
     logger = logging.getLogger("data_handler:main")
 
     if not os.path.exists(DATA_DIR):

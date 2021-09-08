@@ -1,0 +1,18 @@
+stages:
+  install_deps:
+    cmd: python3 -m pip install -r requirements.txt
+  download_dataset:
+    cmd: python src/data_handler.py
+    deps:
+    - src/logs_handler.py
+    - src/data_handler.py
+    - src/yaml_handler.py
+    outs:
+    - data
+  train_model:
+    cmd: python src/main.py
+    deps:
+    - data
+    - src/main.py
+    - src/logs_handler.py
+    - src/network.py

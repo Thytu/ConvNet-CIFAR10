@@ -1,0 +1,32 @@
+schema: '2.0'
+stages:
+  download_dataset:
+    cmd: python src/data_handler.py
+    deps:
+    - path: src/data_handler.py
+      md5: 9085bc0b468b7045486e7a1b02fc8fdc
+      size: 1986
+    - path: src/yaml_handler.py
+      md5: ed4f75535c9fc3d85e4ec88fe6b00e00
+      size: 390
+    outs:
+    - path: data
+      md5: e252d2c8ba36d1ab3e21a873ab62daa3.dir
+      size: 356712185
+      nfiles: 9
+  train_model:
+    cmd: python src/main.py
+    deps:
+    - path: data
+      md5: e252d2c8ba36d1ab3e21a873ab62daa3.dir
+      size: 356712185
+      nfiles: 9
+    - path: src/logs_handler.py
+      md5: 931cbbd677bcdea92b8500c71d925a2d
+      size: 371
+    - path: src/main.py
+      md5: f3b3db70d130720d9b18b44d4e1a9ae4
+      size: 2090
+    - path: src/network.py
+      md5: 611935c93c56c3701d7337a135e680cd
+      size: 6786
