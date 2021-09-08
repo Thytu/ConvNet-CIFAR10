@@ -16,3 +16,5 @@ stages:
     - src/main.py
     - src/logs_handler.py
     - src/network.py
+    outs:
+    - models
