@@ -54,7 +54,7 @@ class ConvNet(nn.Module):
         t = torch.flatten(t, start_dim=1)
         t = self.linears(t)
 
-        return self.fc3(x)
+        return t
 
     def train_model(self, train_loader: torch.utils.data.DataLoader) -> Tuple[float, float]:
         """
