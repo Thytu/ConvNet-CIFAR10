@@ -23,26 +23,30 @@ class ConvNet(nn.Module):
         self.device = device
         self.criterion = nn.CrossEntropyLoss()
 
-        self.convs = nn.Sequential(
-            nn.Conv2d(3, 6, 5),
-            nn.MaxPool2d(2, 2),
+        self.layers = nn.ModuleList([
+            nn.Sequential(
+                nn.Conv2d(3, 6, 5),
+                nn.MaxPool2d(2, 2),
 
-            nn.Conv2d(6, 16, 5),
-            nn.MaxPool2d(2, 2)
-        )
+                nn.Conv2d(6, 16, 5),
+                nn.MaxPool2d(2, 2)
+            ),
 
-        self.linears = nn.Sequential(
-            nn.Linear(16 * 5 * 5, 150),
-            nn.ReLU(),
+            nn.Flatten(),
 
-            nn.Linear(150, 150),
-            nn.ReLU(),
+            nn.Sequential(
+                nn.Linear(16 * 5 * 5, 150),
+                nn.ReLU(),
 
-            nn.Linear(150, 50),
-            nn.ReLU(),
+                nn.Linear(150, 150),
+                nn.ReLU(),
 
-            nn.Linear(50, 10)
-        )
+                nn.Linear(150, 50),
+                nn.ReLU(),
+
+                nn.Linear(50, 10)
+            ),
+        ])
 
         logger.debug("Loading optimizer")
         self.optimizer = optimizer(self.parameters(), lr=lr)
@@ -50,9 +54,8 @@ class ConvNet(nn.Module):
         logger.info("Model successfully created")
 
     def forward(self, t):
-        t = self.convs(t)
-        t = torch.flatten(t, start_dim=1)
-        t = self.linears(t)
+        for idx, lay in enumerate(self.layers):
+            t = lay(t)
 
         return t
 
