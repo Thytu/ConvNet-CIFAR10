@@ -25,16 +25,16 @@ class ConvNet(nn.Module):
 
         self.layers = nn.ModuleList([
             nn.Sequential(
-                nn.Conv2d(in_channels=3, out_channels=6, kernel_size=10),
+                nn.Conv2d(in_channels=3, out_channels=6, kernel_size=5),
                 nn.BatchNorm2d(num_features=6),
-                nn.MaxPool2d(kernel_size=4, stride=2),
+                nn.MaxPool2d(kernel_size=2, stride=2),
             ),
 
             nn.Flatten(),
 
             nn.Sequential(
                 nn.Dropout(p=0.25),
-                nn.Linear(600, 500),
+                nn.Linear(1176, 500),
                 nn.ReLU(),
 
                 nn.Dropout(p=0.25),
