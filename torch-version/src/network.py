@@ -25,26 +25,23 @@ class ConvNet(nn.Module):
 
         self.layers = nn.ModuleList([
             nn.Sequential(
-                nn.Conv2d(3, 6, 5),
-                nn.MaxPool2d(2, 2),
-
-                nn.Conv2d(6, 16, 5),
-                nn.MaxPool2d(2, 2)
+                nn.Conv2d(in_channels=3, out_channels=6, kernel_size=10),
+                nn.BatchNorm2d(num_features=6),
+                nn.MaxPool2d(kernel_size=4, stride=2),
             ),
 
             nn.Flatten(),
 
             nn.Sequential(
-                nn.Linear(16 * 5 * 5, 150),
+                nn.Dropout(p=0.25),
+                nn.Linear(600, 500),
                 nn.ReLU(),
 
-                nn.Linear(150, 150),
+                nn.Dropout(p=0.25),
+                nn.Linear(500, 150),
                 nn.ReLU(),
 
-                nn.Linear(150, 50),
-                nn.ReLU(),
-
-                nn.Linear(50, 10)
+                nn.Linear(150, 10)
             ),
         ])
 
@@ -214,7 +211,7 @@ def load_network(device='cpu') -> nn.Module:
     return net
 
 
-def prune_model(model: nn.Module) -> None:
+def prune_model(model: nn.Module) -> nn.Module:
     """
     Create a new pruned model from the provided model
     """
@@ -227,7 +224,7 @@ def prune_model(model: nn.Module) -> None:
     logger.debug("Loading state dict")
     pruned_model.load_state_dict(model.state_dict())
 
-    for name, module in pruned_model.named_modules():
+    for _, module in pruned_model.named_modules():
 
         if isinstance(module, torch.nn.Conv2d):
             logger.debug("Pruning Conv2D")
