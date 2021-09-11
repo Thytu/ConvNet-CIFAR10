@@ -30,25 +30,27 @@ if __name__ == '__main__':
         test_loss, test_acc = model.test_model(val_loader)
 
         if best_test_acc is None or test_acc < best_test_acc:
-            logger.debug("Changing best model at epooch:", epoch)
+            logger.debug("Changing best model at epoch:", epoch)
 
             best_model = model
             best_test_acc = test_acc
+
+            logger.info("Best model changed at epoch %i\tacc:%d", epoch, best_test_acc)
             
         if (epoch - 1) % 10 == 0:
             print(f"Epoch {epoch}\t\tloss:{train_loss:.3f}\tacc:{train_acc}\t\ttest_loss:{test_loss:.3f}\ttest_acc:{test_acc}")
 
     print('\033[1m' + "UNPRUNED"+ '\033[0m')
     best_model.detailed_test(test_loader)
-    test_loss, test_acc = best_model.test_model(test_loader)
-    print(f"best model loss:{test_loss:.3f}\tmodel acc:{test_acc}")
+    bst_test_loss, bst_test_acc = best_model.test_model(test_loader)
+    print(f"best model loss:{bst_test_loss:.3f}\tmodel acc:{bst_test_acc}")
 
     pruned_model = prune_model(best_model)   
 
     print('\033[1m' + "PRUNED"+ '\033[0m')
     pruned_model.detailed_test(test_loader)
-    test_loss, test_acc = pruned_model.test_model(test_loader)
-    print(f"model loss:{test_loss:.3f}\tmodel acc:{test_acc}")
+    prn_test_loss, prn_test_acc = pruned_model.test_model(test_loader)
+    print(f"model loss:{prn_test_loss:.3f}\tmodel acc:{prn_test_acc}")
 
     if not os.path.exists(MODELS_DIR):
         logger.debug("Creating %s folder", MODELS_DIR)
@@ -58,6 +60,6 @@ if __name__ == '__main__':
     ts = time()
 
     logger.debug("Saving models")
-    best_model.save_dict(fr"{MODELS_DIR}/{ts}_best.pt")
-    pruned_model.save_dict(fr"{MODELS_DIR}/{ts}_pruned.pt")
+    best_model.save_dict(fr"{MODELS_DIR}/{ts}_{bst_test_acc}_best.pt")
+    pruned_model.save_dict(fr"{MODELS_DIR}/{ts}_{prn_test_acc}_pruned.pt")
     logger.debug("Models saved")
