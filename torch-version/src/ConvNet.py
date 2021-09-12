@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.nn.utils.prune as prune
+
+import layers
 
 import logging
 from typing import Tuple
@@ -24,25 +25,9 @@ class ConvNet(nn.Module):
         self.criterion = nn.CrossEntropyLoss()
 
         self.layers = nn.ModuleList([
-            nn.Sequential(
-                nn.Conv2d(in_channels=3, out_channels=6, kernel_size=5),
-                nn.BatchNorm2d(num_features=6),
-                nn.MaxPool2d(kernel_size=2, stride=2),
-            ),
-
+            layers.ConvBlock(),
             nn.Flatten(),
-
-            nn.Sequential(
-                nn.Dropout(p=0.25),
-                nn.Linear(1176, 500),
-                nn.ReLU(),
-
-                nn.Dropout(p=0.25),
-                nn.Linear(500, 150),
-                nn.ReLU(),
-
-                nn.Linear(150, 10)
-            ),
+            layers.LinearBlock(),
         ])
 
         logger.debug("Loading optimizer")

@@ -5,19 +5,20 @@ import os
 from tqdm import tqdm
 from time import time
 
+import ConvNet
 from data_handler import load_dataset
 from yaml_handler import load_yaml
-from network import load_network, prune_model, convert_to_jit, save_state_dict, save_jit_module, select_device
 
 
 def save_network(network: 'nn.Module', folder_path: str, model_id: str, device='cpu') -> None:
     logger.debug("Saving state dicts")
-    save_state_dict(network, fr'{folder_path}/{model_id}_{device}_sdc.pt')
+    ConvNet.save_state_dict(network, fr'{folder_path}/{model_id}_{device}_sdc.pt')
     logger.info("State dicts successfully saved")
 
     logger.debug("Saving jit models")
-    save_jit_module(convert_to_jit(network), fr'{folder_path}/{model_id}_{device}_jit.pt')
+    ConvNet.save_jit_module(ConvNet.convert_to_jit(network), fr'{folder_path}/{model_id}_{device}_jit.pt')
     logger.info("jit models successfully saved")
+
 
 if __name__ == '__main__':
     YAML = load_yaml("./config.yaml")
@@ -26,13 +27,13 @@ if __name__ == '__main__':
     MODELS_DIR = YAML['main']['models_dir']
     DATA_DIR = YAML['global']['data_dir']
     LOG_PATH = YAML['global']['log_path']
-    DEVICE = select_device()
+    DEVICE = ConvNet.select_device()
 
     logging.basicConfig(filename=LOG_PATH, level=logs_handler.get_log_level())
     logger = logging.getLogger("main:main")
 
     train_loader, val_loader, test_loader = load_dataset(DATA_DIR)
-    model = load_network(device=DEVICE)
+    model = ConvNet.load_network(device=DEVICE)
     best_test_acc = None
 
     for epoch in tqdm(range(EPOCH)):
@@ -55,7 +56,7 @@ if __name__ == '__main__':
     bst_test_loss, bst_test_acc = best_model.test_model(test_loader)
     print(f"model loss:{bst_test_loss:.3f}\tmodel acc:{bst_test_acc}")
 
-    pruned_model = prune_model(best_model)   
+    pruned_model = ConvNet.prune_model(best_model)
 
     print('\033[1m' + "PRUNED"+ '\033[0m')
     pruned_model.detailed_test(test_loader)
