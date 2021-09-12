@@ -7,8 +7,17 @@ from time import time
 
 from data_handler import load_dataset
 from yaml_handler import load_yaml
-from network import load_network, prune_model
+from network import load_network, prune_model, convert_to_jit, save_state_dict, save_jit_module, select_device
 
+
+def save_network(network: 'nn.Module', folder_path: str, model_id: str, device='cpu') -> None:
+    logger.debug("Saving state dicts")
+    save_state_dict(network, fr'{folder_path}/{model_id}_{device}_sdc.pt')
+    logger.info("State dicts successfully saved")
+
+    logger.debug("Saving jit models")
+    save_jit_module(convert_to_jit(network), fr'{folder_path}/{model_id}_{device}_jit.pt')
+    logger.info("jit models successfully saved")
 
 if __name__ == '__main__':
     YAML = load_yaml("./config.yaml")
@@ -17,12 +26,13 @@ if __name__ == '__main__':
     MODELS_DIR = YAML['main']['models_dir']
     DATA_DIR = YAML['global']['data_dir']
     LOG_PATH = YAML['global']['log_path']
+    DEVICE = select_device()
 
     logging.basicConfig(filename=LOG_PATH, level=logs_handler.get_log_level())
     logger = logging.getLogger("main:main")
 
     train_loader, val_loader, test_loader = load_dataset(DATA_DIR)
-    model = load_network()
+    model = load_network(device=DEVICE)
     best_test_acc = None
 
     for epoch in tqdm(range(EPOCH)):
@@ -43,7 +53,7 @@ if __name__ == '__main__':
     print('\033[1m' + "UNPRUNED"+ '\033[0m')
     best_model.detailed_test(test_loader)
     bst_test_loss, bst_test_acc = best_model.test_model(test_loader)
-    print(f"best model loss:{bst_test_loss:.3f}\tmodel acc:{bst_test_acc}")
+    print(f"model loss:{bst_test_loss:.3f}\tmodel acc:{bst_test_acc}")
 
     pruned_model = prune_model(best_model)   
 
@@ -57,9 +67,4 @@ if __name__ == '__main__':
         os.mkdir(MODELS_DIR)
         logger.info("Directory %s created successfully", MODELS_DIR)
 
-    ts = time()
-
-    logger.debug("Saving models")
-    best_model.save_dict(fr"{MODELS_DIR}/{ts}_{bst_test_acc}_best.pt")
-    pruned_model.save_dict(fr"{MODELS_DIR}/{ts}_{prn_test_acc}_pruned.pt")
-    logger.debug("Models saved")
+    save_network(best_model, MODELS_DIR, fr"{time()}_{bst_test_acc}", DEVICE)

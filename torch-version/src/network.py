@@ -173,22 +173,19 @@ class ConvNet(nn.Module):
 
         logger.info("Model successfully tested in details")
 
-    def save_dict(self, path: str) -> None:
-        torch.save(self.state_dict(), path)
 
-def _forward_pre_hook(module: nn.Module, inputs: Tuple[torch.Tensor]) -> torch.float32:
+def _forward_pre_hook(module, inputs: Tuple[torch.Tensor]) -> torch.Tensor:
     """
     Cast inputs to float32 and send it to module.device
+
+    Types depends if the model is in eager mode, traced or scripted.
+    For more informations, please refer to : https://pytorch.org/docs/stable/jit_language_reference.html
     """
 
-    logger = logging.getLogger("data_handler:_forward_pre_hook")
-
-    if not torch.is_tensor(inputs[0]):
+    if not isinstance(inputs[0], torch.Tensor):
         logger.debug("Returning casted tensor")
 
         return torch.tensor(inputs[0], dtype=torch.float32, device=module.device)
-
-    logger.debug("Returning tensor")
 
     return inputs[0].to(module.device)
 
@@ -237,3 +234,56 @@ def prune_model(model: nn.Module) -> nn.Module:
     logger.info("Model successfully pruned")
 
     return pruned_model
+
+
+def convert_to_jit(module: nn.Module) -> torch.jit.RecursiveScriptModule:
+    """
+    Script a torch module using torch.jit.script
+    To trace your module, please write a custom function using torch.jit.trace
+    """
+
+    logger = logging.getLogger("data_handler:convert_to_jit")
+
+    logger.debug("Scripting module")
+
+    module = torch.jit.script(module)
+
+    logger.info("Module successfully scripted")
+
+    return module
+
+
+def save_state_dict(module: nn.Module, path: str) -> None:
+    """
+    Save provided model's state dict to path file
+    """
+    logger = logging.getLogger("data_handler:save_state_dict")
+
+    logger.debug("Saving module")
+    torch.save(module.state_dict(), path)
+    logger.debug("Module successfully saved")
+
+
+def save_jit_module(module: torch.jit.RecursiveScriptModule, path: str) -> None:
+    """
+    Save scripted torch module to path file
+    """
+
+    logger = logging.getLogger("data_handler:save_jit_module")
+
+    assert isinstance(module, torch.jit.RecursiveScriptModule), "Model need to be of instance ScriptModule, please be sure to trace the model or script it"
+
+    logger.debug("Saving module")
+    torch.jit.save(module, path)
+    logger.debug("Module successfully saved")
+
+
+def select_device() -> torch.device:
+    """
+    Return a torch.device selecting GPU if available, cpu otherwise.
+
+    To use multiple GPUs, please write a custom function using nn.DataParallel
+    For more informations please refer to https://pytorch.org/tutorials/beginner/former_torchies/parallelism_tutorial.html
+    """
+
+    return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
