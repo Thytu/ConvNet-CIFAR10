@@ -4,6 +4,7 @@ import logs_handler
 import os
 from tqdm import tqdm
 from time import time
+from tensorboardX import SummaryWriter
 
 import ConvNet
 from data_handler import load_dataset
@@ -36,6 +37,8 @@ if __name__ == '__main__':
     model = ConvNet.load_network(device=DEVICE)
     best_test_acc = None
 
+    writer = SummaryWriter()
+
     for epoch in tqdm(range(EPOCH)):
         train_loss, train_acc = model.train_model(train_loader)
         test_loss, test_acc = model.test_model(val_loader)
@@ -47,7 +50,12 @@ if __name__ == '__main__':
             best_test_acc = test_acc
 
             logger.info("Best model changed at epoch %i\tacc:%d", epoch, best_test_acc)
-            
+
+        writer.add_scalars('data/train_loss', train_loss, epoch)
+
+        writer.add_scalars('data/train', {'acc': train_acc, 'loss': train_loss}, epoch)
+        writer.add_scalars('data/val', {'acc': test_acc, 'loss': test_loss}, epoch)
+
         if (epoch - 1) % 10 == 0:
             print(f"Epoch {epoch}\t\tloss:{train_loss:.3f}\tacc:{train_acc}\t\ttest_loss:{test_loss:.3f}\ttest_acc:{test_acc}")
 
