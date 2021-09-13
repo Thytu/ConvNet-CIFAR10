@@ -17,6 +17,7 @@ stages:
     - src/logs_handler.py
     - src/data_handler.py
     - src/yaml_handler.py
-    - src/network.py
+    - src/ConvNet.py
+    - src/layers.py
     outs:
     - models
