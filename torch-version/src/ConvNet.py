@@ -36,7 +36,7 @@ class ConvNet(nn.Module):
         logger.info("Model successfully created")
 
     def forward(self, t):
-        for idx, lay in enumerate(self.layers):
+        for lay in self.layers:
             t = lay(t)
 
         return t
@@ -219,6 +219,49 @@ def prune_model(model: nn.Module) -> nn.Module:
     logger.info("Model successfully pruned")
 
     return pruned_model
+
+
+def static_quantize_model(model: nn.Module, data_loader: torch.utils.data.DataLoader) -> 'TODO':
+    """
+    Quantizes the weights and activations of the model and fuses activations into preceding layers where possible
+    """
+
+    logger = logging.getLogger("data_handler:static_quantize_model")
+
+    SERVER_INFERENCE_CONFIG = 'fbgemm'
+
+    logger.debug("Adding QuantStub & DeQuantStub layers to model")
+    model.layers.insert(0, torch.quantization.QuantStub())
+    model.layers.append(torch.quantization.DeQuantStub())
+
+    logger.debug("Setting model to eval mode")
+    model.eval()
+
+    logger.debug("Setting model qconfig")
+    model.qconfig = torch.quantization.get_default_qconfig(SERVER_INFERENCE_CONFIG)
+
+    logger.debug("Fuzing model layers")
+    model = torch.quantization.fuse_modules(model, [
+        ['layers.1.block.0', 'layers.1.block.1'], # Conv, BN
+        ['layers.3.block.1', 'layers.3.block.2'], # Line, RL
+        ['layers.3.block.4', 'layers.3.block.5'], # Line, RL
+    ])
+
+    logger.debug("Preparing model to quantize")
+    model = torch.quantization.prepare(model)
+
+    logger.debug("Preparing model")
+    for (images, _) in data_loader:
+        model.forward(images)
+
+    logger.debug("Quantizing model")
+    model = torch.quantization.convert(model)
+
+    logger.info("Model successfully quantized")
+
+    print(type(model))
+
+    return model
 
 
 def convert_to_jit(module: nn.Module) -> torch.jit.RecursiveScriptModule:

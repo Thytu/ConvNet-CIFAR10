@@ -51,15 +51,13 @@ if __name__ == '__main__':
 
             logger.info("Best model changed at epoch %i\tacc:%d", epoch, best_test_acc)
 
-        writer.add_scalars('data/train_loss', train_loss, epoch)
-
-        writer.add_scalars('data/train', {'acc': train_acc, 'loss': train_loss}, epoch)
-        writer.add_scalars('data/val', {'acc': test_acc, 'loss': test_loss}, epoch)
+        writer.add_scalars('ConvNet/train', {'acc': train_acc, 'loss': train_loss}, epoch)
+        writer.add_scalars('ConvNet/val', {'acc': test_acc, 'loss': test_loss}, epoch)
 
         if (epoch - 1) % 10 == 0:
             print(f"Epoch {epoch}\t\tloss:{train_loss:.3f}\tacc:{train_acc}\t\ttest_loss:{test_loss:.3f}\ttest_acc:{test_acc}")
 
-    print('\033[1m' + "UNPRUNED"+ '\033[0m')
+    print('\033[1m' + "MODEL"+ '\033[0m')
     best_model.detailed_test(test_loader)
     bst_test_loss, bst_test_acc = best_model.test_model(test_loader)
     print(f"model loss:{bst_test_loss:.3f}\tmodel acc:{bst_test_acc}")
@@ -69,6 +67,13 @@ if __name__ == '__main__':
     print('\033[1m' + "PRUNED"+ '\033[0m')
     pruned_model.detailed_test(test_loader)
     prn_test_loss, prn_test_acc = pruned_model.test_model(test_loader)
+    print(f"model loss:{prn_test_loss:.3f}\tmodel acc:{prn_test_acc}")
+
+    model_int8 = ConvNet.static_quantize_model(best_model, train_loader)
+
+    print('\033[1m' + "QUANTIZED"+ '\033[0m')
+    model_int8.detailed_test(test_loader)
+    prn_test_loss, prn_test_acc = model_int8.test_model(test_loader)
     print(f"model loss:{prn_test_loss:.3f}\tmodel acc:{prn_test_acc}")
 
     if not os.path.exists(MODELS_DIR):
