@@ -221,7 +221,7 @@ def prune_model(model: nn.Module) -> nn.Module:
     return pruned_model
 
 
-def static_quantize_model(model: nn.Module, data_loader: torch.utils.data.DataLoader) -> 'TODO':
+def static_quantize_model(model: nn.Module, data_loader: torch.utils.data.DataLoader) -> nn.Module:
     """
     Quantizes the weights and activations of the model and fuses activations into preceding layers where possible
     """
@@ -258,8 +258,6 @@ def static_quantize_model(model: nn.Module, data_loader: torch.utils.data.DataLo
     model = torch.quantization.convert(model)
 
     logger.info("Model successfully quantized")
-
-    print(type(model))
 
     return model
 
