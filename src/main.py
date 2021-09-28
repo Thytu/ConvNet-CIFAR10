@@ -26,8 +26,15 @@ if __name__ == '__main__':
 
     EPOCH = YAML['main']['epoch']
     MODELS_DIR = YAML['main']['models_dir']
+
     DATA_DIR = YAML['global']['data_dir']
     LOG_PATH = YAML['global']['log_path']
+    MODEL_HP_PATH = YAML['model']['model_hp_path']
+
+    MODEL_YAML = load_yaml(MODEL_HP_PATH)
+    LR = MODEL_YAML['lr']
+    OPTIMIZER = MODEL_YAML['optimizer']
+
     DEVICE = ConvNet.select_device()
 
     logging.basicConfig(filename=LOG_PATH, level=logs_handler.get_log_level())
@@ -37,10 +44,13 @@ if __name__ == '__main__':
     model = ConvNet.load_network(device=DEVICE)
     best_test_acc = None
 
+    model.lr = LR
+    model.select_optimizer(OPTIMIZER)
+
     writer = SummaryWriter()
 
     for epoch in tqdm(range(EPOCH)):
-        train_loss, train_acc = model.train_model(train_loader)
+        train_loss, train_acc, _ = model.train_model(train_loader)
         test_loss, test_acc = model.test_model(val_loader)
 
         if best_test_acc is None or test_acc < best_test_acc:

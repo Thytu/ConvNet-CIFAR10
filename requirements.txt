@@ -1,3 +1,4 @@
 torch>=1.7.*
 torchvision>=0.8.*
 tensorboardX>=2.4
+optuna>=2.9.*

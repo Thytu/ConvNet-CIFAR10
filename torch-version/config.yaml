@@ -1,6 +1,0 @@
-global:
-    log_path: ./logs.log
-    data_dir: ./data
-main:
-    models_dir: ./models
-    epoch: 20

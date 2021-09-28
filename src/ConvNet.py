@@ -1,3 +1,5 @@
+import io
+
 import torch
 import torch.nn as nn
 import torch.nn.utils.prune as prune
@@ -5,7 +7,10 @@ import torch.nn.utils.prune as prune
 import layers
 
 import logging
-from typing import Tuple
+from typing import Any, List, Tuple, Optional, Union, TypeVar
+
+
+Callback = TypeVar('Callback', bound=type(lambda loss, acc : float))
 
 
 class ConvNet(nn.Module):
@@ -30,6 +35,8 @@ class ConvNet(nn.Module):
             layers.LinearBlock(),
         ])
 
+        self.lr = lr
+
         logger.debug("Loading optimizer")
         self.optimizer = optimizer(self.parameters(), lr=lr)
 
@@ -41,9 +48,15 @@ class ConvNet(nn.Module):
 
         return t
 
-    def train_model(self, train_loader: torch.utils.data.DataLoader) -> Tuple[float, float]:
+    def train_model(self, train_loader: torch.utils.data.DataLoader, Callbacks: Optional[Callback] = []) -> Tuple[float, float, List[Any]]:
         """
         Train the model using the train_loader.
+
+            train_loader: data to train the model on
+
+            Callbacks: execute a function at the end of each epoch.
+                A callback take in parameters loss: float, acc: float
+                A callback can return any value type and will be return at the end of this function
         """
         logger = logging.getLogger("ConvNet:train_model")
 
@@ -52,6 +65,7 @@ class ConvNet(nn.Module):
         total = 0
         correct = 0
         running_loss = 0.0
+        callbacks_returns = []
 
         for idx, data in enumerate(train_loader, 0):
             logger.debug("Training the model (%i)", idx)
@@ -82,9 +96,14 @@ class ConvNet(nn.Module):
 
             running_loss += loss.item()
 
+        for callback in Callbacks:
+            logger.debug("Calling callback")
+            callbacks_returns.append(callback(loss, (predicted == labels).sum().item() / labels.size(0)))
+        logger.debug("Callbacks successfully caled")
+
         logger.info("Model successfully trained")
 
-        return running_loss / total, 100 * correct / total
+        return running_loss / total, 100 * correct / total, callbacks_returns
 
     def test_model(self, test_loader: torch.utils.data.DataLoader) -> Tuple[float, float]:
         """
@@ -158,6 +177,24 @@ class ConvNet(nn.Module):
 
         logger.info("Model successfully tested in details")
 
+    def select_optimizer(self, optimizer: Union[str, torch.optim.Optimizer]):
+        """
+        Select model optimizer
+            optimizer : str | torch.optim.Optimizer
+                exemple: self.select_optimizer("Adam")
+        """
+
+        logger = logging.getLogger("ConvNet:select_optimize")
+
+        if type(optimizer) == torch.optim.Optimizer:
+            logger.debug("Loading optimizer using optim.Optimizer")
+            self.optimizer = optimizer(self.parameters, self.lr)
+
+        logger.debug("Loading optimizer using str")
+        self.optimize = getattr(torch.optim, optimizer)(self.parameters(), lr=self.lr)
+
+        logger.info("Optimizer successfully loaded")
+
 
 def _forward_pre_hook(module, inputs: Tuple[torch.Tensor]) -> torch.Tensor:
     """
@@ -167,10 +204,14 @@ def _forward_pre_hook(module, inputs: Tuple[torch.Tensor]) -> torch.Tensor:
     For more informations, please refer to : https://pytorch.org/docs/stable/jit_language_reference.html
     """
 
+    # logger = logging.getLogger("data_handler:_forward_pre_hook")
+
     if not isinstance(inputs[0], torch.Tensor):
-        logger.debug("Returning casted tensor")
+        # logger.debug("Returning casted tensor")
 
         return torch.tensor(inputs[0], dtype=torch.float32, device=module.device)
+
+    # logger.debug("Returning tensor")
 
     return inputs[0].to(module.device)
 
@@ -279,6 +320,25 @@ def convert_to_jit(module: nn.Module) -> torch.jit.RecursiveScriptModule:
     return module
 
 
+def load_jit_module(path: str) -> torch.jit.RecursiveScriptModule:
+    """
+    Load scripted module from path file and return it
+    """
+
+    logger = logging.getLogger("data_handler:load_jit_module")
+
+    logger.debug("Opening prived file")
+    with open(path, 'rb') as f:
+        logger.debug("Creating buffer")
+        buffer = io.BytesIO(f.read())
+
+    logger.debug("Loading module")
+    module = torch.jit.load(buffer)
+    logger.info("Module successfully loaded")
+
+    return module
+
+
 def save_state_dict(module: nn.Module, path: str) -> None:
     """
     Save provided model's state dict to path file
@@ -287,7 +347,21 @@ def save_state_dict(module: nn.Module, path: str) -> None:
 
     logger.debug("Saving module")
     torch.save(module.state_dict(), path)
-    logger.debug("Module successfully saved")
+    logger.info("Module successfully saved")
+
+
+def load_state_dict(module: nn.Module, path: str) -> nn.Module:
+    """
+    Load provided model's state dict from path file
+    """
+
+    logger = logging.getLogger("data_handler:load_state_dict")
+
+    logger.debug("Loading module")
+    module.load_state_dict(torch.load(path))
+    logger.info("Module successfully loaded")
+
+    return module
 
 
 def save_jit_module(module: torch.jit.RecursiveScriptModule, path: str) -> None:

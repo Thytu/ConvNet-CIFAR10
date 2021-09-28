@@ -4,14 +4,31 @@ stages:
   download_dataset:
     cmd: python src/data_handler.py
     deps:
+    - config.yaml
     - src/logs_handler.py
     - src/data_handler.py
     - src/yaml_handler.py
     outs:
     - data
+  optimize_hyperparameters:
+    cmd: python src/hyperparameters.py & python src/hyperparameters.py # Laucn two asynchronous python instances
+    deps:
+    - config.yaml
+    - data
+    - src/hyperparameters.py
+    - src/logs_handler.py
+    - src/data_handler.py
+    - src/yaml_handler.py
+    - src/ConvNet.py
+    - src/layers.py
+    outs:
+    - .hyperparameters.db
+    - model_hp.yaml
   train_model:
     cmd: python src/main.py
     deps:
+    - config.yaml
+    - model_hp.yaml
     - data
     - src/main.py
     - src/logs_handler.py

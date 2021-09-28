@@ -1,0 +1,21 @@
+global:
+  data_dir: ./data
+  log_path: ./logs.log
+hyperparameters:
+  db_path: sqlite:///.hyperparameters.db
+  epoch: 2
+  hight_lr: 0.1
+  low_lr: 1.0e-05
+  n_trials: 25
+  optimizers:
+  - Adam
+  - RMSprop
+  - SGD
+  timeout: 1000
+main:
+  epoch: 20
+  models_dir: ./models
+model:
+  model_hp_path: model_hp.yaml
+#   lr: 0.018105714521393142
+#   optimizer: SGD

@@ -8,9 +8,9 @@
 * [Contact](#contact)
 
 ## Setup
-To use the projet please:	
-- Install [dvc](https://dvc.org) and the 
-- Do `python3 -m pip install -r requierements.txt`
+To use the projet please:
+- Install [dvc](https://dvc.org)
+- Do `dvc repro`
 
 
 ## Usage
@@ -21,7 +21,8 @@ To download the dataset: `python3 src/data_handler.py`
 ## TODO
 - [ ] Display a graph showing the evolution of the accuracy and loss
 - [ ] Use CML w/ dvc
-- [ ] Use Optuna to find the best hyperparameters
+- [ ] Add torch profiler to the project
+- [x] Use Optuna to find the best hyperparameters
 - [ ] Use MLFlow
 
 ## Contact
